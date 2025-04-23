@@ -4,9 +4,7 @@ import { FaPlus } from "react-icons/fa6"
 import axios from "axios"
 import { ToastContainer, toast } from 'react-toastify';
 
-const Add = () => {
-  const url = "http://localhost:4000"
-
+const Add = ({url}) => {
   const [image, setImage] = useState(false)
   const [data, setData] = useState({
     name: "",

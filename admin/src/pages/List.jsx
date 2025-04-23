@@ -3,9 +3,8 @@ import React, { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import {TbTrash} from "react-icons/tb"
 
-const List = () => {
+const List = ({url}) => {
 
-  const url = "http://localhost:4000"
   const [list, setList] = useState([])
   const fetchList = async()=>{
     const response = await axios.get(`${url}/api/product/list`)
