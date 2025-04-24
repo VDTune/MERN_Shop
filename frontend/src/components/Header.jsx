@@ -98,6 +98,3 @@ const Header = ({ setShowLogin }) => {
 };
 
 export default Header;
-
-
-
