@@ -5,17 +5,17 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-const frontend_url = "http://localhost:5173/"
+const frontend_url = "http://localhost:5173"
 const placeOrder = async (req, res) => {
     try {
         const newOrder = new orderModel({
-            userId: req.body.userId,
+            userId: req.user.userId,
             items: req.body.items,
             amount: req.body.amount,
             address: req.body.address,
         })
         await newOrder.save()
-        await userModel.findByIdAndUpdate(req.body.userId, {cartData: {}});
+        await userModel.findByIdAndUpdate(req.user.userId, {cartData: {}});
 
         const line_items = req.body.items.map((item) =>({
             price_data: {
@@ -51,4 +51,21 @@ const placeOrder = async (req, res) => {
     }
 }
 
-export { placeOrder };
+// xác thực đơn hàng
+const verifyOrder = async (req, res) => {
+    const { orderId, success } = req.body;
+    try {
+        if (success == "true") {
+            await orderModel.findByIdAndUpdate(orderId, {payment: true})
+            res.json({success: true, message: "Payment successful"})
+        } else {
+            await orderModel.findByIdAndDelete(orderId)
+            res.json({success: false, message: "Payment failed"})
+        }
+    } catch (error) {
+        console.log(error)
+        res.json({success: false, message: error.message})
+    }
+}
+
+export { placeOrder, verifyOrder };
