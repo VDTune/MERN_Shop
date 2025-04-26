@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Order = () => {
   const { getTotalCartAmount, all_products, token, cartItems, url } =
@@ -53,6 +54,15 @@ const Order = () => {
     }
   }
 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if(!token) {
+      navigate("/cart")
+    } else if (getTotalCartAmount() === 0){
+      navigate(("/cart"))
+    }
+  })
 
 
   return (

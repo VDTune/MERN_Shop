@@ -68,4 +68,38 @@ const verifyOrder = async (req, res) => {
     }
 }
 
-export { placeOrder, verifyOrder };
+// đơn hàng user frontend
+const userOrders = async (req, res) => {
+    try {
+        const orders = await orderModel.find({userId: req.user.userId})
+        res.json({success: true, data: orders})
+    } catch (error) {
+        console.log(error)
+        res.json({success: false, message: error.message})
+    }
+}
+
+// đơn hàng admin frontend
+const listOrders = async (req, res) => {
+    try {
+        const orders = await orderModel.find({});
+        res.json({success: true, data: orders})
+    } catch (error) {
+        console.log(error)
+        res.json({success: false, message: error.message})
+        
+    }
+}
+
+// api cập nhật trạng thái đơn hàng
+const updateStatus = async (req, res) => {
+    try {
+        await orderModel.findByIdAndUpdate(req.body.orderId, {status: req.body.status})
+        res.json({success: true, message: "Status updated successfully"})
+    } catch (error) {
+        console.log(error)
+        res.json({success: false, message: "Error updating status"})
+    }
+}
+
+export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus };
