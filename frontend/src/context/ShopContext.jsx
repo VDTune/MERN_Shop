@@ -6,9 +6,10 @@ export const ShopContext = createContext(null);
 
 const ShopContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
-  const url = "http://localhost:4000"
+  const url = "http://localhost:4000";
   const [token, setToken] = useState("");
   const [all_products, setAll_products] = useState([]);
+  const [user, setUser] = useState(null);
 
   const addToCart = async (itemId) => {
     if (!cartItems[itemId]) {
@@ -16,19 +17,18 @@ const ShopContextProvider = (props) => {
     } else {
       setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] + 1 }));
     }
-    if(token){
-      await axios.post(url + "/api/cart/add", { itemId }, {headers: {token}} )
+    if (token) {
+      await axios.post(url + "/api/cart/add", { itemId }, { headers: { token } });
     }
   };
 
   const removeFromCart = async (itemId) => {
     setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }));
-    if(token){
-      await axios.post(url + "/api/cart/remove", { itemId }, {headers: {token}} )
+    if (token) {
+      await axios.post(url + "/api/cart/remove", { itemId }, { headers: { token } });
     }
   };
 
-  // get total cart amount
   const getTotalCartAmount = () => {
     let totalAmount = 0;
     for (const item in cartItems) {
@@ -41,25 +41,68 @@ const ShopContextProvider = (props) => {
   };
 
   const fetchProductList = async () => {
-    const response = await axios.get(url + "/api/product/list")
-    setAll_products(response.data.data)
-  }
+    const response = await axios.get(url + "/api/product/list");
+    setAll_products(response.data.data);
+  };
 
   const loadCartData = async (token) => {
-    const response = await axios.post(url + "/api/cart/get", {},{headers: {token}})
-    setCartItems(response.data.cartData)
-  }
+    const response = await axios.post(url + "/api/cart/get", {}, { headers: { token } });
+    setCartItems(response.data.cartData);
+  };
 
-  useEffect(()=> {
+  const fetchUserData = async (token) => {
+    const response = await axios.get(url + "/api/user/profile", { headers: { token } });
+    if (response.data.success) {
+      setUser(response.data.data);
+    }
+  };
+
+  const addComment = async (productId, content) => {
+    try {
+      const response = await axios.post(
+        url + "/api/product/comments",
+        { productId, content },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
+  };
+
+  const addReview = async (productId, rating, content) => {
+    try {
+      const response = await axios.post(
+        url + "/api/product/reviews",
+        { productId, rating, content },
+        { headers: { token } }
+      );
+      if (response.data.success) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
     async function loadData() {
-      await fetchProductList()
-      if(localStorage.getItem("token")){
-        setToken(localStorage.getItem("token"))
-        await loadCartData(localStorage.getItem("token"))
+      await fetchProductList();
+      if (localStorage.getItem("token")) {
+        const token = localStorage.getItem("token");
+        setToken(token);
+        await loadCartData(token);
+        await fetchUserData(token);
       }
     }
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   const contextValue = {
     all_products,
@@ -70,14 +113,13 @@ const ShopContextProvider = (props) => {
     getTotalCartAmount,
     url,
     token,
-    setToken
+    setToken,
+    user,
+    addComment,
+    addReview,
   };
 
-  return (
-    <ShopContext.Provider value={contextValue}>
-      {props.children}
-    </ShopContext.Provider>
-  );
+  return <ShopContext.Provider value={contextValue}>{props.children}</ShopContext.Provider>;
 };
 
 export default ShopContextProvider;

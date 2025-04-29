@@ -1,12 +1,62 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { FaStar, FaHeart, FaMinus, FaPlus } from "react-icons/fa6";
 import { ShopContext } from "../context/ShopContext";
 import { LuMoveUpRight } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const ProductMd = ({ product }) => {
   const { addToCart, removeFromCart, cartItems, url } = useContext(ShopContext);
   const navigate = useNavigate();
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+
+  // Lấy dữ liệu đánh giá từ API
+  const fetchReviews = async () => {
+    try {
+      const response = await axios.get(`${url}/api/product/reviews/${product._id}`);
+      if (response.data.success) {
+        const reviews = response.data.data;
+        setReviewCount(reviews.length); // Số lượng đánh giá
+
+        // Tính trung bình rating
+        if (reviews.length > 0) {
+          const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+          const avgRating = totalRating / reviews.length;
+          setAverageRating(avgRating);
+        } else {
+          setAverageRating(0);
+        }
+      }
+    } catch (error) {
+      console.log("Error fetching reviews:", error);
+      setAverageRating(0);
+      setReviewCount(0);
+    }
+  };
+
+  // Gọi API khi component được render
+  useEffect(() => {
+    fetchReviews();
+  }, [product._id]);
+
+// Hàm hiển thị số sao
+const renderStars = (rating) => {
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    if (i <= Math.floor(rating)) {
+      // Ngôi sao đầy đủ
+      stars.push(<FaStar key={i} className="text-yellow-500" />);
+    } else if (i - 1 < rating && rating < i) {
+      // Ngôi sao một nửa (nếu có phần thập phân)
+      stars.push(<FaStar key={i} className="text-yellow-500 opacity-50" />);
+    } else {
+      // Ngôi sao rỗng
+      stars.push(<FaStar key={i} className="text-gray-300" />);
+    }
+  }
+  return stars;
+};
 
   return (
     <section className="max-padd-container flex flex-col xl:flex-row gap-10 py-8 bg-primary">
@@ -35,16 +85,16 @@ const ProductMd = ({ product }) => {
       <div className="flex flex-col flex-1 bg-white p-8 rounded-xl shadow-md">
         <h1 className="font-bold text-2xl mb-4">{product.name}</h1>
         <div className="flex items-center justify-between mb-6">
-          <span className="text-xl font-semibold">${product.price}</span>
-          <div className="flex items-center text-yellow-500 gap-1 text-sm">
-            <FaStar />
-            <FaStar />
-            <FaStar />
-            <FaStar />
-            <FaStar />
-            <span className="text-gray-600 ml-2">(233 reviews)</span>
-          </div>
-        </div>
+  <span className="text-xl font-semibold">${product.price}</span>
+  <div className="flex items-center gap-1 text-sm">
+    <div className="flex">
+      {renderStars(averageRating)}
+    </div>
+    <span className="text-gray-600 ml-1">
+      {averageRating.toFixed(1)} ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+    </span>
+  </div>
+</div>
 
         {/* Color + Size */}
         <div className="flex flex-col sm:flex-row gap-6 mb-6">
