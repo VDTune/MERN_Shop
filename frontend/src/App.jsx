@@ -8,15 +8,19 @@ import Verify from "./pages/Verify";
 import MyOrders from "./pages/MyOrders";
 import { useState } from "react";
 import LoginPopup from "./components/LoginPopup";
+import WalletPopup from "./components/WalletPopup";
+
 
 export default function App() {
 
   const [showLogin, setShowLogin] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
   return (
     <div className="App">
       <BrowserRouter>
-      {showLogin?<LoginPopup setShowLogin={setShowLogin}/> : <> </>}
-        <Header setShowLogin={setShowLogin}/>
+        {showLogin?<LoginPopup setShowLogin={setShowLogin}/> : <> </>}
+        {showWallet?<WalletPopup setShowWallet={setShowWallet}/> : <> </>}
+        <Header setShowLogin={setShowLogin} />
         <Routes>
           <Route path='/' element={<Home/>} />
           <Route path="/product" element={<Product/>}>

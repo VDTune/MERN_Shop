@@ -10,6 +10,13 @@ import { ShopContext } from "../context/ShopContext";
 export const Item = ({ product }) => {
   const { cartItems, addToCart, removeFromCart, url } = useContext(ShopContext);
 
+  // Tránh lỗi khi cartItems hoặc product chưa có
+  if (!product || !product._id) {
+    return <div>Invalid product data</div>;
+  }
+
+  const quantity = cartItems?.[product._id] || 0;
+
   return (
     <div className="shadow-sm">
       <div className="relative group">
@@ -26,7 +33,7 @@ export const Item = ({ product }) => {
           >
             <FaUpRightAndDownLeftFromCenter />
           </Link>
-          {!cartItems[product._id] ? (
+          {!quantity ? (
             <FaPlus
               onClick={() => addToCart(product._id)}
               className="bg-white h-8 w-8 p-2 rounded-full shadow-inner cursor-pointer"
@@ -38,7 +45,7 @@ export const Item = ({ product }) => {
                 className="rounded-full h-6 w-6 p-1 ml-1 bg-primary cursor-pointer"
               />
 
-              <p>{cartItems[product._id]}</p>
+              <p>{quantity}</p>
 
               <FaPlus
                 onClick={() => addToCart(product._id)}
@@ -62,5 +69,6 @@ export const Item = ({ product }) => {
     </div>
   );
 };
+
 
 export default Item;

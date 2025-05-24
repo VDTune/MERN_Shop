@@ -184,9 +184,7 @@ const Order = () => {
               </div>
             </div>
             <button
-              type="submit"
-              className="btn-secondary w-52 rounded"
-            >
+              className="btn-secondary w-52 rounded">
               Proceed to Checkout
             </button>
           </div>

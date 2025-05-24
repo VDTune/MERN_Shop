@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.svg";
 import Navbar from "./Navbar";
@@ -7,19 +7,49 @@ import { FaBasketShopping, FaCircleUser } from "react-icons/fa6";
 import { FiPackage } from "react-icons/fi";
 import { TbLogout } from "react-icons/tb";
 import { ShopContext } from "../context/ShopContext";
+// import MetaMaskOnboarding from '@metamask/onboarding';
 
 const Header = ({ setShowLogin }) => {
   const [menuOpened, setMenuOpened] = useState(false);
   const toggleMenu = () => setMenuOpened(!menuOpened);
   const { getTotalCartAmount, token, setToken } = useContext(ShopContext);
+
+  // const [account, setAccount] = useState(null);
+  // const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
+  const onboarding = useRef(null);
+
   const navigate = useNavigate();
+
+  // useEffect(() => {
+  //   onboarding.current = new MetaMaskOnboarding();
+
+  //   if (MetaMaskOnboarding.isMetaMaskInstalled()) {
+  //     setIsMetaMaskInstalled(true);
+  //     connectWallet();
+  //   }
+  // }, []);
+
+  //  const connectWallet = async () => {
+  //   try {
+  //     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  //     if (accounts.length > 0) {
+  //       setAccount(accounts[0]);
+  //     }
+  //   } catch (err) {
+  //     console.error("User rejected wallet connection", err);
+  //   }
+  // };
+
+  // const installMetaMask = () => {
+  //   onboarding.current.startOnboarding();
+  // };
 
   const logout = () => {
     localStorage.removeItem("token");
     setToken("");
     navigate("/");
   };
-
+  
   return (
     <header className="fixed w-full top-0 z-50 bg-white shadow-sm">
       <div className="max-padd-container">
