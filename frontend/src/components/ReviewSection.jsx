@@ -17,6 +17,7 @@ const ReviewSection = ({ productId }) => {
   const [canReview, setCanReview] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reviewImages, setReviewImages] = useState([]);
 
   //lấy từ blockchain
   // const fetchReviews = async () => {
@@ -70,11 +71,12 @@ const ReviewSection = ({ productId }) => {
 
           reviewsOnChain.push({
             ...data,
-            createdAt: review.createdAt,
+            createdAt: new Date(review.createdAt),
             productId: review.productId,
             userId: {
               name: data.user || "Anonymous"  // dùng user từ IPFS, nếu không có thì đặt "Anonymous"
-            }
+            },
+            images: data.images || [] // Lấy images nếu có
           });
         }
         setReviews(reviewsOnChain.sort((a, b) => b.createdAt - a.createdAt));
@@ -145,14 +147,10 @@ const ReviewSection = ({ productId }) => {
         content: newReview,
         timestamp: new Date().toISOString()
       };
+      console.log("Sending reviewData to Pinata:", reviewData);
 
-      // const ipfsHash = await uploadReviewToIPFS(reviewData);
-      // if (!ipfsHash) {
-      //   toast.error("Failed to upload to IPFS");
-      //   return;
-      // }
        // Upload lên IPFS
-      const ipfsHash = await uploadReviewToIPFS(reviewData);
+      const ipfsHash = await uploadReviewToIPFS(reviewData, reviewImages);
       if (!ipfsHash) {
         toast.error("Failed to upload review to IPFS");
         setLoading(false);
@@ -175,6 +173,7 @@ const ReviewSection = ({ productId }) => {
       if (res.data.success) {
         toast.success("Review saved successfully!");
         setNewReview("");
+        setReviewImages([]); 
         setRating(5);
         fetchReviews();
       } else {
@@ -245,6 +244,16 @@ const ReviewSection = ({ productId }) => {
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     rows="4"
                   />
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Upload Images:</label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => setReviewImages([...e.target.files])}
+                      className="block w-full text-sm text-gray-600 border border-gray-300 rounded-lg cursor-pointer focus:outline-none"
+                    />
+                  </div>
                   <div className="flex justify-end mt-3">
                     <button
                       type="submit"
@@ -307,6 +316,19 @@ const ReviewSection = ({ productId }) => {
               <p className="text-gray-700 mt-2 pl-12 text-base leading-relaxed">
                 {review.content}
               </p>
+              {/* Hiển thị hình ảnh nếu có */}
+              {review.images && review.images.length > 0 && (
+                <div className="pl-12 mt-3 flex flex-wrap gap-3">
+                  {review.images.map((imgUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`review-${idx}`}
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ))
         )}

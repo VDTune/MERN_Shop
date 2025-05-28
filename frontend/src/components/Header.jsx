@@ -46,9 +46,12 @@ const Header = ({ setShowLogin }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    // localStorage.removeItem("walletAddress");
+    // localStorage.removeItem("userId");
     setToken("");
     navigate("/");
   };
+
   
   return (
     <header className="fixed w-full top-0 z-50 bg-white shadow-sm">

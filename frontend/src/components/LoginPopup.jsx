@@ -32,9 +32,13 @@ const LoginPopup = ({ setShowLogin }) => {
     if(response.data.success){
         setToken(response.data.token)
         localStorage.setItem("token", response.data.token)
+
         if (response.data.user && response.data.user._id) {
           localStorage.setItem("userId", response.data.user._id);
         }
+        // Sau khi login thành công → yêu cầu kết nối MetaMask để đồng bộ
+        // const [address] = await window.ethereum.request({ method: "eth_requestAccounts" });
+        // localStorage.setItem("walletAddress", address)
         setShowLogin(false)
     }else{
         alert(response.data.message)
