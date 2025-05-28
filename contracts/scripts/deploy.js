@@ -1,20 +1,38 @@
-const hre = require("hardhat");
+// scripts/deploy.js
+const { ethers } = require("hardhat");
 
 async function main() {
-  // Deploy CommentContract
-  const Comment = await hre.ethers.getContractFactory("CommentContract");
-  const comment = await Comment.deploy();
-  await comment.waitForDeployment(); // ✅ mới API
-  console.log("CommentContract deployed to:", await comment.getAddress());
+  const [deployer] = await ethers.getSigners();
+  console.log("🚀 Deploying contracts with account:", deployer.address);
+  console.log("💰 Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
 
-  // Deploy PaymentContract
-  const Payment = await hre.ethers.getContractFactory("PaymentContract");
-  const payment = await Payment.deploy();
-  await payment.waitForDeployment();
-  console.log("PaymentContract deployed to:", await payment.getAddress());
+  // Deploy TransactionLogger
+  const TransactionLogger = await ethers.getContractFactory("TransactionLogger");
+  const transactionLogger = await TransactionLogger.deploy();
+  await transactionLogger.waitForDeployment();
+  const transactionLoggerAddress = await transactionLogger.getAddress();
+  console.log("✅ TransactionLogger deployed at:", transactionLoggerAddress);
+
+  // Deploy ReviewLogger
+  const ReviewLogger = await ethers.getContractFactory("ReviewLogger");
+  const reviewLogger = await ReviewLogger.deploy();
+  await reviewLogger.waitForDeployment();
+  const reviewLoggerAddress = await reviewLogger.getAddress();
+  console.log("✅ ReviewLogger deployed at:", reviewLoggerAddress);
+
+  // Nếu muốn ghi ra file JSON địa chỉ contract để frontend dùng:
+  const fs = require("fs");
+  fs.writeFileSync(
+    "deployedAddresses.json",
+    JSON.stringify({
+      TransactionLogger: transactionLoggerAddress,
+      ReviewLogger: reviewLoggerAddress,
+    }, null, 2)
+  );
+  console.log("📄 Addresses saved to deployedAddresses.json");
 }
 
 main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+  console.error("❌ Deployment failed:", error);
+  process.exit(1);
 });

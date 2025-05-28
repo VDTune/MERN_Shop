@@ -21,7 +21,7 @@ const Product = () => {
         <ProductHD product={product} />
         <ProductMD product={product} />
         <ProductDescription product={product} />
-        <CommentSection productId={productId} />
+        {/* <CommentSection productId={productId} /> */}
         <ReviewSection productId={productId} />
       </div>
     </section>

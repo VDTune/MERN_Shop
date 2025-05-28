@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
+import { ethers } from "ethers";
 import { ShopContext } from "../context/ShopContext";
 import { FaStar, FaRegStar, FaUserCircle, FaPaperPlane } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { uploadReviewToIPFS } from "../utils/ipfs";
+import { hasPurchasedProduct } from "../utils/contract"; // Giả sử bạn có hàm này để kiểm tra mua hàng
+// import {logReviewOnChain, getReviewCountFromContract, getReviewFromContract} from "../utils/reviewlogger";
 
 const ReviewSection = ({ productId }) => {
-  const { url, token, user, addReview } = useContext(ShopContext);
+  const { url, token, user } = useContext(ShopContext);
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState("");
   const [rating, setRating] = useState(5);
@@ -14,19 +18,70 @@ const ReviewSection = ({ productId }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
+  //lấy từ blockchain
+  // const fetchReviews = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const reviewCount = await getReviewCountFromContract();
+  //     const reviewsOnChain = [];
+
+  //     const productHash = ethers.id(productId);
+
+  //     for (let i = 0; i < reviewCount; i++) {
+  //       const [productIdHash, reviewer, ipfsHash, timestamp] = await getReviewFromContract(i);
+
+  //       if (productIdHash === productHash) {
+  //         console.log(ipfsHash);
+  //         const res = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
+  //         const data = await res.json();
+  //         if (data.rating === undefined) {
+  //           continue; // bỏ qua nếu không có rating
+  //         }
+  //         reviewsOnChain.push({
+  //           ...data,
+  //           userId: { 
+  //             name: data.user || reviewer.slice(0, 6) + "..." + reviewer.slice(-4) },
+  //           createdAt: Number(timestamp) * 1000
+  //         });
+  //       }
+  //     }
+
+  //     setReviews(reviewsOnChain.sort((a, b) => b.createdAt - a.createdAt));
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast.error("Failed to load reviews from blockchain");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  //lấy thông qua backend
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${url}/api/product/reviews/${productId}`);
-      if (response.data.success) {
-        const sortedReviews = response.data.data.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        setReviews(sortedReviews);
+      const res = await axios.get(`http://localhost:4000/api/product/reviews/${productId}`);
+      if (res.data.success) {
+        const reviewsOnChain = [];
+        for (const review of res.data.reviews) {
+          // review.ipfsHash có thể dùng để fetch nội dung chi tiết từ IPFS
+          const ipfsRes = await fetch(`https://gateway.pinata.cloud/ipfs/${review.ipfsHash}`);
+          const data = await ipfsRes.json();
+          if (data.rating === undefined) continue; // bỏ review không có rating
+
+          reviewsOnChain.push({
+            ...data,
+            createdAt: review.createdAt,
+            productId: review.productId,
+            userId: {
+              name: data.user || "Anonymous"  // dùng user từ IPFS, nếu không có thì đặt "Anonymous"
+            }
+          });
+        }
+        setReviews(reviewsOnChain.sort((a, b) => b.createdAt - a.createdAt));
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Failed to load reviews");
+      console.error(error);
+      toast.error("Failed to load reviews from backend/IPFS");
     } finally {
       setLoading(false);
     }
@@ -35,76 +90,124 @@ const ReviewSection = ({ productId }) => {
   const checkCanReview = async () => {
     if (!token) {
       setCanReview(false);
-      setErrorMessage("Please log in to review");
+      setErrorMessage("Vui lòng đăng nhập để đánh giá");
       return;
     }
+    
+
     try {
-      const response = await axios.post(
-        `${url}/api/product/reviews/check`,
-        { productId },
-        { headers: { token } }
-      );
-      if (response.data.success) {
+      const decoded = JSON.parse(atob(token.split(".")[1])); // nếu token là JWT
+      const userId =  localStorage.getItem("userId") || decoded.userId;
+
+      if (!userId) {
+        setCanReview(false);
+        setErrorMessage("Không tìm thấy thông tin người dùng");
+        return;
+      }
+
+      const purchased = await hasPurchasedProduct(userId, productId);
+
+      if (purchased) {
         setCanReview(true);
         setErrorMessage("");
       } else {
         setCanReview(false);
-        setErrorMessage(response.data.message);
+        setErrorMessage("Bạn cần mua sản phẩm để đánh giá");
       }
     } catch (error) {
-      console.log(error);
+      console.error("Lỗi kiểm tra quyền đánh giá:", error);
       setCanReview(false);
-      setErrorMessage("Failed to check review permission");
+      setErrorMessage("Không thể kiểm tra quyền đánh giá");
     }
-  };
+};
+
 
   const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    if (!token) {
-      toast.warning("Please log in to review");
-      return;
-    }
-    if (!canReview) {
-      toast.warning(errorMessage);
-      return;
-    }
-    if (!newReview.trim()) {
-      toast.warning("Review cannot be empty");
-      return;
-    }
+  e.preventDefault();
+
+  //   if (!window.ethereum) {
+  //     toast.warning("Please install MetaMask");
+  //     return;
+  //   }
+
+  if (!newReview.trim()) {
+    toast.warning("Review cannot be empty");
+    return;
+  }
+
+  setLoading(true);
 
     try {
-      const success = await addReview(productId, rating, newReview);
-      if (success) {
+      const reviewData = {
+        productId,
+        user: user.name,
+        rating,
+        content: newReview,
+        timestamp: new Date().toISOString()
+      };
+
+      // const ipfsHash = await uploadReviewToIPFS(reviewData);
+      // if (!ipfsHash) {
+      //   toast.error("Failed to upload to IPFS");
+      //   return;
+      // }
+       // Upload lên IPFS
+      const ipfsHash = await uploadReviewToIPFS(reviewData);
+      if (!ipfsHash) {
+        toast.error("Failed to upload review to IPFS");
+        setLoading(false);
+        return;
+      }
+      console.log("thanh cong ", ipfsHash);
+      // await logReviewOnChain(productId, ipfsHash);
+      // toast.success("Review submitted on blockchain!");
+      // setNewReview("");
+      // setRating(5);
+      // fetchReviews();
+      
+      // Gửi ipfsHash + productId về backend để lưu (bỏ qua blockchain)
+      const res = await axios.post(
+        `${url}/api/product/reviews`,
+        { productId, ipfsHash },
+        { headers: { token } }
+      );
+
+      if (res.data.success) {
+        toast.success("Review saved successfully!");
         setNewReview("");
         setRating(5);
-        await fetchReviews();
-        await checkCanReview();
-        toast.success("Review submitted successfully");
+        fetchReviews();
+      } else {
+        toast.error("Failed to save review: " + res.data.message);
       }
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to add review");
+      toast.error("Failed to submit review");
     }
+    setLoading(false);
   };
 
   const renderRatingStars = (rating) => {
-    return [...Array(5)].map((_, i) => (
-      i < rating ? 
-        <FaStar key={i} className="text-yellow-400" /> : 
+    return [...Array(5)].map((_, i) =>
+      i < rating ? (
+        <FaStar key={i} className="text-yellow-400" />
+      ) : (
         <FaRegStar key={i} className="text-yellow-400" />
-    ));
+      )
+    );
   };
 
   useEffect(() => {
+    console.log("Token:", token);
     fetchReviews();
     checkCanReview();
+    // setCanReview(true); // For testing purposes, allow all reviews
   }, [productId, token]);
 
   return (
     <div className="mt-8 w-full">
       <h3 className="text-xl font-bold mb-4 text-gray-800">Customer Ratings & Reviews</h3>
-      
+
       {/* Review Form */}
       {token && (
         <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
@@ -125,9 +228,11 @@ const ReviewSection = ({ productId }) => {
                           onClick={() => setRating(num)}
                           className="text-xl focus:outline-none"
                         >
-                          {num <= rating ? 
-                            <FaStar className="text-yellow-400" /> : 
-                            <FaRegStar className="text-yellow-400" />}
+                          {num <= rating ? (
+                            <FaStar className="text-yellow-400" />
+                          ) : (
+                            <FaRegStar className="text-yellow-400" />
+                          )}
                         </button>
                       ))}
                       <span className="ml-2 text-sm text-gray-600">{rating}.0</span>
@@ -153,9 +258,7 @@ const ReviewSection = ({ productId }) => {
               </div>
             </form>
           ) : (
-            <div className="text-center py-4 text-red-500 text-sm">
-              {errorMessage}
-            </div>
+            <div className="text-center py-4 text-red-500 text-sm">{errorMessage}</div>
           )}
         </div>
       )}
@@ -171,8 +274,11 @@ const ReviewSection = ({ productId }) => {
             <p className="text-gray-500">No reviews yet. Be the first to share your thoughts!</p>
           </div>
         ) : (
-          reviews.map((review) => (
-            <div key={review._id} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          reviews.map((review, idx) => (
+            <div
+              key={idx}
+              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-base">
                   {review.userId.name.charAt(0).toUpperCase()}
@@ -180,7 +286,9 @@ const ReviewSection = ({ productId }) => {
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-gray-800 text-base">{review.userId.name}</p>
+                      <p className="font-semibold text-gray-800 text-base">
+                        {review.userId.name}
+                      </p>
                       <div className="flex items-center gap-1">
                         {renderRatingStars(review.rating)}
                         <span className="ml-1 text-sm text-gray-600">{review.rating}.0</span>
@@ -188,10 +296,10 @@ const ReviewSection = ({ productId }) => {
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {new Date(review.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
+                    {new Date(review.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric"
                     })}
                   </p>
                 </div>

@@ -11,14 +11,17 @@ import { useState } from "react";
 import LoginPopup from "./components/LoginPopup";
 import WalletPopup from "./components/WalletPopup";
 
-
 export default function App() {
   const [showLogin, setShowLogin] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
+
   return (
     <div className="App">
       <BrowserRouter>
-      {showLogin?<LoginPopup setShowLogin={setShowLogin}/> : <> </>}
-        <Header setShowLogin={setShowLogin}/>
+        {showLogin && <LoginPopup setShowLogin={setShowLogin} />}
+        {showWallet && <WalletPopup setShowWallet={setShowWallet} />}
+        <Header setShowLogin={setShowLogin} />
+        
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/product" element={<Product />}>
@@ -26,7 +29,10 @@ export default function App() {
           </Route>
           <Route path="/cart" element={<Cart />} />
           <Route path="/order" element={<Order />} />
-          <Route path="/checkout" element={<Checkout />} />
+          <Route
+            path="/checkout"
+            element={<Checkout setShowWallet={setShowWallet} />}
+          />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/myorders" element={<MyOrders />} />
         </Routes>

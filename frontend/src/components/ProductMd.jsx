@@ -37,7 +37,7 @@ const ProductMd = ({ product }) => {
 
   // Gọi API khi component được render
   useEffect(() => {
-    fetchReviews();
+    // fetchReviews();
   }, [product._id]);
 
 // Hàm hiển thị số sao
@@ -110,7 +110,7 @@ const renderStars = (rating) => {
           <div>
             <h4 className="font-semibold mb-2">Size</h4>
             <div className="flex gap-2">
-              {["S", "M", "L", "XL"].map((size) => (
+              {["S", "M", "L", "XL"].map((size) => (  
                 <div
                   key={size}
                   className="border rounded-md w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-gray-100"

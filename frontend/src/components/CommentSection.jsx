@@ -1,30 +1,52 @@
 import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
 import { ShopContext } from "../context/ShopContext";
-import { FaUserCircle, FaPaperPlane, FaTrash } from "react-icons/fa";
+import { FaUserCircle, FaPaperPlane } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { ethers } from "ethers";
+import { verifyMessage } from "ethers";
 import "react-toastify/dist/ReactToastify.css";
+import { uploadReviewToIPFS, fetchFromIPFS } from "../utils/ipfs";
+import { logReviewOnChain, getReviewsByProductId } from "../utils/reviewlogger";
 
 const CommentSection = ({ productId }) => {
-  const { url, token, user, addComment, deleteComment } = useContext(ShopContext);
+  const { token, user, addComment } = useContext(ShopContext);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
 
   const fetchComments = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await axios.get(`${url}/api/product/comments/${productId}`);
-      if (response.data.success) {
-        // Sắp xếp comments theo thời gian mới nhất lên đầu
-        const sortedComments = response.data.data.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        setComments(sortedComments);
-      }
+      // Lấy cmt từ blockchain theo productId
+      const cmt = await getReviewsByProductId(productId);
+      
+
+      // Lấy chi tiết từng review từ IPFS
+      const detailedComments = await Promise.all(
+        cmt.map(async (r) => {
+          const data = await fetchFromIPFS(r.ipfsHash);
+          if ("rating" in data) {
+            return null;
+          }
+          return {
+            username: data.user || "Anonymous",
+            content: data.content,
+            userAddress: r.user,
+            timestamp: Number(r.timestamp) * 1000, // giả sử timestamp dạng UNIX seconds, chuyển thành ms
+            ipfsHash: r.ipfsHash,
+          };
+        })
+      );
+      const filteredComments = detailedComments.filter((c) => c !== null);
+
+
+      // Sắp xếp mới nhất lên đầu
+      filteredComments.sort((a, b) => b.timestamp - a.timestamp);
+
+      setComments(filteredComments);
     } catch (error) {
-      console.log(error);
-      toast.error("Failed to load comments");
+      console.error("Failed to fetch blockchain comments", error);
+      toast.error("Failed to load comments from blockchain");
     } finally {
       setLoading(false);
     }
@@ -42,36 +64,84 @@ const CommentSection = ({ productId }) => {
     }
 
     try {
-      const success = await addComment(productId, newComment);
-      if (success) {
-        setNewComment("");
-        await fetchComments();
-        toast.success("Comment added successfully");
+      // 1. Upload comment lên IPFS
+      const ipfsData = {
+        productId,
+        user: user.name || user.address || "Anonymous",
+        content: newComment,
+        createdAt: new Date().toISOString(),
+      };
+
+      const ipfsHash = await uploadReviewToIPFS(ipfsData);
+
+      if (!ipfsHash) {
+        toast.error("Upload to IPFS failed");
+        return;
       }
+      toast.success("Comment uploaded to IPFS");
+      console.log("thanh cong",ipfsHash);
+      
+      // 2. Tạo mesage JSON ký OF-chain
+      const messageObj = {
+        productId,
+        ipfsHash,
+        timestamp: Date.now(),
+      };
+      const message = JSON.stringify(messageObj);
+
+      // 3. Ký message
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
+      const signature = await provider.send("personal_sign", [message, address]);
+
+      // 4. Verify chữ ký (bạn có thể bỏ phần này, nhưng demo để check)
+      if (!verifySignature(message, signature, address)) {
+        toast.error("Signature verification failed");
+        return;
+      }
+      toast.success("Comment signed off-chain");
+
+      localStorage.setItem("lastCommentSignature", JSON.stringify({
+        message,
+        signature,
+        address,
+      }));
+
+      // Lưu comment mới vào state để UI cập nhật ngay
+      setComments((prev) => [
+        {
+          username: user.name || user.address.slice(0, 6) + "..." + user.address.slice(-4),
+          content: newComment,
+          userAddress: address,
+          timestamp: Date.now(),
+          ipfsHash,
+          signature,
+          message,
+        },
+        ...prev,
+      ]);
+
+      // Ghi IPFS hash lên blockchain
+      // await logReviewOnChain(productId, ipfsHash);
+      // toast.success("Comment logged on blockchain");
+
+      setNewComment("");
+      await fetchComments();
     } catch (error) {
-      toast.error("Failed to add comment");
+      console.error("Error submitting comment:", error);
+      toast.error("Failed to submit comment");
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
-    if (window.confirm("Are you sure you want to delete this comment?")) {
-      try {
-        const response = await axios.post(
-          `${url}/api/product/comments/delete`,
-          { commentId },
-          { headers: { token: localStorage.getItem("adminToken") } }
-        );
-        
-        if (response.data.success) {
-          toast.success("Comment deleted successfully");
-          setComments(prev => prev.filter(comment => comment._id !== commentId));
-        } else {
-          toast.error("Failed to delete comment");
-        }
-      } catch (error) {
-        console.error("Delete error:", error);
-        toast.error("Error deleting comment");
-      }
+  const verifySignature = (message, signature, expectedAddress) => {
+    try {
+      const signerAddress = verifyMessage(message, signature);
+      return signerAddress.toLowerCase() === expectedAddress.toLowerCase();
+    } catch (error) {
+      console.error("Invalid signature verification:", error);
+      return false;
     }
   };
 
@@ -82,8 +152,7 @@ const CommentSection = ({ productId }) => {
   return (
     <div className="mt-8 w-full">
       <h3 className="text-xl font-bold mb-4 text-gray-800">Customer Comments</h3>
-      
-      {/* Comment Form */}
+
       {token && (
         <form onSubmit={handleSubmitComment} className="mb-6 bg-white p-4 rounded-lg shadow-sm">
           <div className="flex items-start gap-3">
@@ -112,7 +181,6 @@ const CommentSection = ({ productId }) => {
         </form>
       )}
 
-      {/* Comments List */}
       <div className="space-y-4">
         {loading ? (
           <div className="flex justify-center py-4">
@@ -123,37 +191,29 @@ const CommentSection = ({ productId }) => {
             <p className="text-gray-500">No reviews yet. Be the first to share your thoughts!</p>
           </div>
         ) : (
-          comments.map((comment) => (
-            <div key={comment._id} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-left">
+          comments.map((comment, idx) => (
+            <div
+              key={comment.ipfsHash || idx}
+              className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow text-left"
+            >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-base">
-                    {comment.userId.name.charAt(0).toUpperCase()}
+                    {comment.username ? comment.username.charAt(0).toUpperCase() : "U"}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800 text-base">{comment.userId.name}</p>
+                    <p className="font-semibold text-gray-800 text-base">{comment.username || "Unknown"}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
+                      {new Date(comment.timestamp).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
                       })}
                     </p>
                   </div>
                 </div>
-                {user && (user._id === comment.userId._id || user.isAdmin) && (
-                  <button
-                    onClick={() => handleDeleteComment(comment._id)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
-                    title="Delete comment"
-                  >
-                    <FaTrash size={16} />
-                  </button>
-                )}
               </div>
-              <p className="text-gray-700 mt-2 pl-12 text-base leading-relaxed">
-                {comment.content}
-              </p>
+              <p className="text-gray-700 mt-2 pl-12 text-base leading-relaxed">{comment.content}</p>
             </div>
           ))
         )}
