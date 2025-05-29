@@ -14,7 +14,13 @@ const PORT = 4000;
 
 //middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors(
+    {
+        origin: 'https://mern-shop-bvxcn9ixy-vdtunes-projects.vercel.app/', // Adjust this to your frontend URL
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        credentials: true, // Allow cookies to be sent with requests
+    }
+));
 
 // DB connection
 connectDB();
