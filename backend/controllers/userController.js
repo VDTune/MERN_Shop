@@ -1,6 +1,6 @@
 import userModel from "../models/userModel.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 import validator from "validator";
 
 // login function
@@ -13,7 +13,7 @@ const loginUser = async (req, res) => {
             return res.json({success: false, message: "User not found"})
         }
 
-        const isMatch = await bcrypt.compare(password, user.password)
+        const isMatch = await bcryptjs.compare(password, user.password)
         if(!isMatch){
             return res.json({success: false, message: "Invalid password"})
         }
@@ -50,8 +50,8 @@ const registerUser = async (req, res) => {
         }
 
         // mã hóa password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const salt = await bcryptjs.genSalt(10);
+        const hashedPassword = await bcryptjs.hash(password, salt);
 
         const newUser = new userModel({
             name: name,
