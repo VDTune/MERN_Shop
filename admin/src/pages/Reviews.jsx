@@ -92,6 +92,19 @@ console.log("Reviews received:", response.data.reviews);
                     </div>
                   </div>
                 </div>
+                {/* Hiển thị ảnh nếu có */}
+                {review.images.length > 0 && (
+                  <div className="flex gap-2 mb-2 overflow-x-auto">
+                    {review.images.map((imgUrl, i) => (
+                      <img
+                        key={i}
+                        src={imgUrl}
+                        alt={`Review Image ${i + 1}`}
+                        className="w-20 h-20 object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
+                )}
                 <p className="text-gray-700 mb-2">{review.content}</p>
                 <div className="text-sm text-gray-500">
                   <span>Product ID: {review.productId}</span>
