@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import addresses from "D:/TIEN/Nam4/HK2/DACN3/MERN_Shop/contracts/deployedAddresses.json";
+import addresses from '../../../contracts/deployedAddresses.json';
 
 const CONTRACT_ADDRESS = addresses.TransactionLogger; // địa chỉ contract đã deploy
 const CONTRACT_ABI = [
