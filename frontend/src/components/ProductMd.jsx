@@ -5,40 +5,47 @@ import { LuMoveUpRight } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const ProductMd = ({ product }) => {
+const ProductMd = ({ product, refreshTrigger}) => {
   const { addToCart, removeFromCart, cartItems, url } = useContext(ShopContext);
   const navigate = useNavigate();
   const [averageRating, setAverageRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
 
   // Lấy dữ liệu đánh giá từ API
-  const fetchReviews = async () => {
+useEffect(() => {
+  const fetchRatingAndReviewCount = async () => {
     try {
-      const response = await axios.get(`${url}/api/product/reviews/${product._id}`);
-      if (response.data.success) {
-        const reviews = response.data.data;
-        setReviewCount(reviews.length); // Số lượng đánh giá
+      const res = await axios.get(`${url}/api/product/reviews/${product._id}`);
+      if (res.data.success) {
+        const reviews = [];
+        for (const review of res.data.reviews) {
+          const ipfsRes = await fetch(`https://gateway.pinata.cloud/ipfs/${review.ipfsHash}`);
+          const data = await ipfsRes.json();
 
-        // Tính trung bình rating
+          if (data.rating === undefined) continue; // Bỏ nếu không có rating
+
+          reviews.push(data.rating);
+        }
+
+        setReviewCount(reviews.length);
+
         if (reviews.length > 0) {
-          const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+          const totalRating = reviews.reduce((sum, rating) => sum + rating, 0);
           const avgRating = totalRating / reviews.length;
           setAverageRating(avgRating);
         } else {
           setAverageRating(0);
         }
       }
-    } catch (error) {
-      console.log("Error fetching reviews:", error);
+    } catch (err) {
+      console.error("Lỗi khi lấy rating từ IPFS:", err);
       setAverageRating(0);
       setReviewCount(0);
     }
   };
 
-  // Gọi API khi component được render
-  useEffect(() => {
-    // fetchReviews();
-  }, [product._id]);
+  fetchRatingAndReviewCount();
+}, [product._id, refreshTrigger]);
 
 // Hàm hiển thị số sao
 const renderStars = (rating) => {

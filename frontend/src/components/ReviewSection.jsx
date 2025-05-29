@@ -9,7 +9,7 @@ import { uploadReviewToIPFS } from "../utils/ipfs";
 import { hasPurchasedProduct } from "../utils/contract"; // Giả sử bạn có hàm này để kiểm tra mua hàng
 // import {logReviewOnChain, getReviewCountFromContract, getReviewFromContract} from "../utils/reviewlogger";
 
-const ReviewSection = ({ productId }) => {
+const ReviewSection = ({ productId, onReviewSubmitted  }) => {
   const { url, token, user } = useContext(ShopContext);
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState("");
@@ -57,6 +57,23 @@ const ReviewSection = ({ productId }) => {
   // };
 
   //lấy thông qua backend
+  const fetchUserProfile = async () => {
+    try {
+      const res = await axios.get(`http://localhost:4000/api/user/profile`, {
+        headers: { token }
+      });
+
+      if (res.data.success) {
+        return res.data.data.name; // Trả về tên người dùng
+      } else {
+        console.warn("Không lấy được profile người dùng");
+        return "Anonymous";
+      }
+    } catch (err) {
+      console.error("Lỗi khi lấy thông tin người dùng:", err);
+      return "Anonymous";
+    }
+  };
   const fetchReviews = async () => {
     try {
       setLoading(true);
@@ -100,6 +117,9 @@ const ReviewSection = ({ productId }) => {
     try {
       const decoded = JSON.parse(atob(token.split(".")[1])); // nếu token là JWT
       const userId =  localStorage.getItem("userId") || decoded.userId;
+      console.log("Decoded token:", decoded);
+      console.log("User ID:", userId);
+      console.log("Product ID:", productId);
 
       if (!userId) {
         setCanReview(false);
@@ -140,9 +160,10 @@ const ReviewSection = ({ productId }) => {
   setLoading(true);
 
     try {
+      const username = await fetchUserProfile();
       const reviewData = {
         productId,
-        user: user.name,
+        user: username,
         rating,
         content: newReview,
         timestamp: new Date().toISOString()
@@ -176,6 +197,7 @@ const ReviewSection = ({ productId }) => {
         setReviewImages([]); 
         setRating(5);
         fetchReviews();
+        onReviewSubmitted && onReviewSubmitted();
       } else {
         toast.error("Failed to save review: " + res.data.message);
       }
@@ -218,7 +240,9 @@ const ReviewSection = ({ productId }) => {
                 </div>
                 <div className="flex-1">
                   <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Rating:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Your Rating:
+                    </label>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((num) => (
                         <button

@@ -358,7 +358,10 @@ const getReviewsByProductId = async (req, res) => {
 // ✅ Lấy tất cả review (cho admin)
 const getAllReviews = async (req, res) => {
   try {
-    const reviews = await reviewModel.find().sort({ createdAt: -1 });
+    // Lấy các review có ipfsHash tồn tại và không rỗng
+    const reviews = await reviewModel.find({
+      ipfsHash: { $exists: true, $ne: null, $ne: "" },
+    }).sort({ createdAt: -1 });
 
     const formattedReviews = reviews.map((review) => ({
       productId: review.productId,

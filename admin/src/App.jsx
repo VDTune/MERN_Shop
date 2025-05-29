@@ -5,6 +5,7 @@ import List from "./pages/List";
 import Orders from "./pages/Orders";
 import Reviews from "./pages/Reviews";
 import Sidebar from "./components/Sidebar";
+import Wallet from "./pages/Wallet";
 
 function App() {
   const url = "http://localhost:4000";
@@ -19,6 +20,8 @@ function App() {
             <Route path="/list" element={<List url={url} />} />
             <Route path="/orders" element={<Orders url={url} />} />
             <Route path="/reviews" element={<Reviews url={url} />} />
+            <Route path="/wallet" element={<Wallet url={url} />} />
+
           </Routes>
         </div>
       </div>

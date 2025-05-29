@@ -1,5 +1,5 @@
 import React from "react";
-import { BsCardChecklist, BsCardList, BsPlusSquare, BsChat, BsStar } from "react-icons/bs";
+import { BsCardChecklist, BsCardList, BsPlusSquare, BsChat, BsStar, BsWallet } from "react-icons/bs";
 import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
@@ -66,6 +66,20 @@ const Sidebar = () => {
         >
           <BsStar className="text-lg" />
           <span className="font-medium">Reviews</span>
+        </NavLink>
+        
+        <NavLink
+          to={"/wallet"}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+              isActive
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+                : "text-indigo-900 hover:bg-indigo-100 hover:text-indigo-700"
+            }`
+          }
+        >
+          <BsWallet className="text-lg" />
+          <span className="font-medium">Wallet</span>
         </NavLink>
       </div>
     </div>

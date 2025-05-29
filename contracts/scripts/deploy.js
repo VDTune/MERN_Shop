@@ -6,6 +6,7 @@ async function main() {
   console.log("🚀 Deploying contracts with account:", deployer.address);
   console.log("💰 Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
 
+  const adminAddress = "0xYourAdminAddressHere"; // Thay bằng địa chỉ admin thực tế
   // Deploy TransactionLogger
   const TransactionLogger = await ethers.getContractFactory("TransactionLogger");
   const transactionLogger = await TransactionLogger.deploy();

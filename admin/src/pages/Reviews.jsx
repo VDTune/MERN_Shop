@@ -14,13 +14,17 @@ const Reviews = ({ url }) => {
         headers: { token: localStorage.getItem("adminToken") },
       });
       console.log("Response from backend:", response.data);
-console.log("Reviews received:", response.data.reviews);
+      console.log("Reviews received:", response.data.reviews);
       if (response.data.success) {
         const reviewList = [];
         console.log("Response from backend:", response.data);
 
         for (const review of response.data.reviews) {
           try {
+            if (!review.ipfsHash) {
+              console.warn("ipfsHash is undefined, skipping...");
+              continue;
+            }
             const ipfsRes = await fetch(`https://gateway.pinata.cloud/ipfs/${review.ipfsHash}`);
             const data = await ipfsRes.json();
 
