@@ -53,10 +53,10 @@ const MyOrders = () => {
             onClick={fetchOrders} 
             className='text-primary hover:text-primary-dark medium-14 flex items-center gap-2'
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
             </svg>
-            Refresh
+            <p className='h-5 w-5 text-black'>Refresh</p>
           </button>
         </div>
 
@@ -80,7 +80,7 @@ const MyOrders = () => {
                   <th className='pb-4 pl-2'>Date</th>
                   <th className='pb-4 pl-2'>Total</th>
                   <th className='pb-4 pl-2'>Status</th>
-                  <th className='pb-4 pl-2'>Actions</th>
+                  {/* <th className='pb-4 pl-2'>Actions</th> */}
                 </tr>
               </thead>
               <tbody className='divide-y divide-gray-200'>
@@ -123,14 +123,14 @@ const MyOrders = () => {
                         </span>
                       </div>
                     </td>
-                    <td className='py-4 pl-2'>
+                    {/* <td className='py-4 pl-2'>
                       <button 
                         onClick={() => console.log('Track order:', order._id)}
                         className='btn-outline rounded-md !py-2 !px-3 text-sm hover:bg-primary hover:text-white transition-colors'
                       >
                         Track
                       </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>
