@@ -53,9 +53,9 @@ import {
   removeProduct,
   createReview,
   getReviewsByProductId,
-  checkReviewPermission,
+  getAllReviews,
 } from "../controllers/productController.js";
-import authMiddleware from "../middleware/auth.js";
+// import authMiddleware from "../middleware/auth.js";
 
 const productRouter = express.Router();
 
@@ -75,9 +75,10 @@ productRouter.post("/remove", removeProduct);
 // Review routes
 productRouter.post("/reviews", /*authMiddleware,*/ createReview);
 productRouter.get("/reviews/:productId", getReviewsByProductId);
+productRouter.get("/reviews", getAllReviews);
 
 // Nếu cần check quyền review
-productRouter.post("/reviews/check", authMiddleware, checkReviewPermission);
+// productRouter.post("/reviews/check", authMiddleware, checkReviewPermission);
 
 export default productRouter;
 

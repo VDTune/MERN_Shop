@@ -355,28 +355,48 @@ const getReviewsByProductId = async (req, res) => {
   }
 };
 
-// // Nếu bạn dùng ES Module (import/export)
-export const checkReviewPermission = async (req, res) => {
+// ✅ Lấy tất cả review (cho admin)
+const getAllReviews = async (req, res) => {
   try {
-    const { productId } = req.body;
-    const userId = req.user?.id;
+    const reviews = await reviewModel.find().sort({ createdAt: -1 });
 
-    // Ví dụ: kiểm tra nếu user đã mua sản phẩm này
-    const hasPurchased = await OrderModel.exists({
-      userId,
-      'items.productId': productId
-    });
+    const formattedReviews = reviews.map((review) => ({
+      productId: review.productId,
+      ipfsHash: review.ipfsHash,
+      createdAt: review.createdAt,
+    }));
 
-    if (hasPurchased) {
-      return res.json({ success: true });
-    } else {
-      return res.json({ success: false, message: "You must purchase this product to review it." });
-    }
+    res.json({ success: true, reviews: formattedReviews });
+    console.log("Tất cả reviews:", formattedReviews);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Error in getAllReviews:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch all reviews" });
   }
 };
+
+
+// // Nếu bạn dùng ES Module (import/export)
+// export const checkReviewPermission = async (req, res) => {
+//   try {
+//     const { productId } = req.body;
+//     const userId = req.user?.id;
+
+//     // Ví dụ: kiểm tra nếu user đã mua sản phẩm này
+//     const hasPurchased = await OrderModel.exists({
+//       userId,
+//       'items.productId': productId
+//     });
+
+//     if (hasPurchased) {
+//       return res.json({ success: true });
+//     } else {
+//       return res.json({ success: false, message: "You must purchase this product to review it." });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
 
 export {
   addProduct,
@@ -384,4 +404,5 @@ export {
   removeProduct,
   createReview,
   getReviewsByProductId,
+  getAllReviews,
 };

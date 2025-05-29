@@ -55,20 +55,6 @@ const Sidebar = () => {
         </NavLink>
 
         <NavLink
-          to={"/comments"}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-              isActive
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                : "text-indigo-900 hover:bg-indigo-100 hover:text-indigo-700"
-            }`
-          }
-        >
-          <BsChat className="text-lg" />
-          <span className="font-medium">Comments</span>
-        </NavLink>
-
-        <NavLink
           to={"/reviews"}
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
